@@ -226,7 +226,7 @@
       }
 
       .main-content {
-        max-width: 1200px;
+        max-width: 95vw; /* Увеличено для широких экранов */
         margin: 0 auto;
         height: 100vh;
         gap: 30px;
@@ -297,7 +297,7 @@
 
     <div class="controls-wrapper">
       <div class="level-header">
-        <div class="level-title" id="levelTitle">Возбуждение</div>
+        <div class="level-title" id="levelTitle">Прелюдия</div>
         <button class="next-level-btn" id="nextLevelBtn" title="Или нажмите Стрелку Вправо">Дальше (→)</button>
       </div>
 
@@ -318,12 +318,14 @@
   </div>
 
   <script>
-    // --- ОБНОВЛЕННЫЕ УРОВНИ ---
+    // --- ОБНОВЛЕННЫЙ СПИСОК УРОВНЕЙ ---
     const LEVELS = [
       { name: 'Возбуждение', type: 'separate', files: ['Level_1_Arousal_Man.json', 'Level_1_Arousal_Woman.json'] },
-      { name: 'Близость', type: 'separate', files: ['Level_2_Intimacy_Man.json', 'Level_2_Intimacy_Woman.json'] },
-      { name: 'Секс', type: 'separate', files: ['Level_3_Sex_Man.json', 'Level_3_Sex_Woman.json'] },
-      { name: 'Оргазм', type: 'separate', files: ['Level_4_Orgasm_Man.json', 'Level_4_Orgasm_Woman.json'] }
+      { name: 'Взаимный Жар', type: 'mutual', file: 'Level_2_Mutual_Heat.json' },
+      { name: 'Близость', type: 'separate', files: ['Level_3_Intimacy_Man.json', 'Level_3_Intimacy_Woman.json'] },
+      { name: 'Голый Жар', type: 'mutual', file: 'Level_4_Bare_Heat.json' },
+      { name: 'Секс', type: 'separate', files: ['Level_5_Sex_Man.json', 'Level_5_Sex_Woman.json'] },
+      { name: 'Оргазм', type: 'separate', files: ['Level_6_Orgasm_Man.json', 'Level_6_Orgasm_Woman.json'] }
     ];
 
     let currentLevelIndex = 0;
