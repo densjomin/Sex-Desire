@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>18+ Рулетка</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <style>
+    :root {
+      --bg: #050510;
+      --wheel-man: #4a90e2;
+      --wheel-woman: #ff69b4;
+      --wheel-mutual: #f59e0b;
+      --text: #f7f7f7;
+      --card: #151522;
+      --warning: #ff4444;
+      --success: #4ade80;
+      --accent: #a855f7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #221133 0, #050510 70%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      /* Запрет выделения текста для ощущения приложения */
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Основной контейнер */
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      height: 100vh; /* Занимаем всю высоту экрана */
+      padding: 12px;
+      gap: 12px;
+    }
+
+    /* БЛОК 1: Карточка с заданием (GIF) */
+    .result-card {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 0; /* Убрали паддинг чтобы картинка была крупнее */
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      width: 100%;
+      /* На мобильном занимает часть экрана, на ПК - всё свободное место */
+      flex: 1; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .gif-wrapper {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .gif-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* Картинка не обрезается, а вписывается */
+      border-radius: 20px;
+    }
+
+    /* БЛОК 2: Панель управления (снизу) */
+    .controls-wrapper {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-bottom: env(safe-area-inset-bottom, 20px); /* Отступ для iPhone */
+    }
+
+    .level-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      gap: 12px;
+    }
+
+    .level-title {
+      background: var(--accent);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 15px;
+      flex: 1;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+    }
+
+    .next-level-btn {
+      background: var(--success);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+      /* Убираем синюю обводку при клике */
+      outline: none; 
+    }
+
+    .next-level-btn:hover {
+      background: #22c55e;
+      transform: scale(1.02);
+    }
+
+    .next-level-btn:active {
+      transform: scale(0.95);
+    }
+
+    .wheel-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      padding: 12px;
+      border-radius: 20px;
+    }
+
+    .task-counter {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: #aaa;
+    }
+    .task-counter span {
+      color: #fff;
+      font-size: 18px;
+    }
+
+    .wheel-container {
+      width: 80px;
+      height: 80px;
+      cursor: pointer;
+      transition: opacity 0.3s ease;
+      /* Добавляем подсказку что можно кликать */
+      position: relative;
+    }
+
+    .wheel-container:hover {
+        transform: scale(1.05);
+    }
+    
+    .wheel-container:active {
+        transform: scale(0.95);
+    }
+
+    .wheel-container.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .wheel {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 3px solid #333;
+      position: relative;
+      transition: transform 2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+
+    .wheel.man { background: var(--wheel-man); box-shadow: 0 0 15px var(--wheel-man); }
+    .wheel.woman { background: var(--wheel-woman); box-shadow: 0 0 15px var(--wheel-woman); }
+    .wheel.mutual { background: var(--wheel-mutual); box-shadow: 0 0 15px var(--wheel-mutual); }
+
+    .gender-icon {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .gender-icon.mutual { font-size: 20px; white-space: pre; line-height: 1; }
+
+    .spin-hint {
+        color: #fff;
+        font-size: 12px;
+        opacity: 0.5;
+        margin-right: auto;
+        margin-left: 12px;
+    }
+
+    .message { color: #888; font-size: 16px; padding: 24px; text-align: center; }
+    .error { color: var(--warning); font-weight: 600; }
+    .loading { color: #aaa; }
+
+    /* --- АДАПТАЦИЯ ПОД ПК (Широкие экраны) --- */
+    @media (min-width: 1024px) {
+      body {
+        /* На ПК убираем скролл, чтобы выглядело как цельное приложение */
+        overflow: hidden; 
+        padding: 20px;
+      }
+
+      .main-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        height: 100vh;
+        gap: 30px;
+        justify-content: space-between; /* Раскидываем верх и низ */
+      }
+
+      /* Окно с гифкой становится огромным */
+      .result-card {
+        flex-grow: 1; /* Забирает все свободное место */
+        width: 100%;
+        background: #000; /* Черный фон для кинематографичности */
+        border: 1px solid #333;
+        box-shadow: 0 0 50px rgba(0,0,0,0.5);
+      }
+
+      /* Панель управления "всплывает" снизу */
+      .controls-wrapper {
+        max-width: 800px;
+        background: var(--card);
+        padding: 20px 40px;
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        
+        /* Меняем раскладку на горизонтальную для ПК */
+        flex-direction: row; 
+        align-items: center;
+      }
+
+      .level-header {
+        width: auto;
+        flex: 1;
+      }
+      
+      .wheel-section {
+        width: auto;
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        gap: 30px;
+      }
+
+      .wheel-container {
+        width: 100px; /* Чуть больше на ПК */
+        height: 100px;
+      }
+
+      .spin-hint {
+        display: block; /* Показываем подсказку про пробел только на ПК */
+        font-size: 14px;
+      }
+    }
+
+    /* Скрываем подсказку про пробел на мобилках */
+    @media (max-width: 1023px) {
+        .spin-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-content">
+    <div class="result-card">
+      <div class="gif-wrapper" id="gifWrapper">
+        <div class="message loading">Загружаем задания...</div>
+      </div>
+    </div>
+
+    <div class="controls-wrapper">
+      <div class="level-header">
+        <div class="level-title" id="levelTitle">Возбуждение</div>
+        <button class="next-level-btn" id="nextLevelBtn" title="Или нажмите Стрелку Вправо">Дальше (→)</button>
+      </div>
+
+      <div class="wheel-section">
+        <div class="task-counter" id="taskCounter">
+          <div><span id="taskCount">0</span> / <span id="totalTasks">?</span></div>
+        </div>
+        
+        <div class="spin-hint">Жми Пробел<br>чтобы крутить</div>
+
+        <div class="wheel-container" id="wheelContainer" title="Или нажмите Пробел">
+          <div id="wheel" class="wheel man">
+            <div class="gender-icon" id="genderIcon">🙎‍♂️</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- ОБНОВЛЕННЫЕ УРОВНИ ---
+    const LEVELS = [
+      { name: 'Возбуждение', type: 'separate', files: ['Level_1_Arousal_Man.json', 'Level_1_Arousal_Woman.json'] },
+      { name: 'Близость', type: 'separate', files: ['Level_2_Intimacy_Man.json', 'Level_2_Intimacy_Woman.json'] },
+      { name: 'Секс', type: 'separate', files: ['Level_3_Sex_Man.json', 'Level_3_Sex_Woman.json'] },
+      { name: 'Оргазм', type: 'separate', files: ['Level_4_Orgasm_Man.json', 'Level_4_Orgasm_Woman.json'] }
+    ];
+
+    let currentLevelIndex = 0;
+    let currentLevel = LEVELS[0];
+    let tasksData = {};
+    let usedTasks = [];
+    let totalTasks = 0;
+    let isSpinning = false;
+    let rotationAngle = 0;
+    let isDataLoaded = false;
+    let currentGenderIndex = 0; // 0 = man, 1 = woman
+
+    const elements = {
+      levelTitle: document.getElementById('levelTitle'),
+      nextLevelBtn: document.getElementById('nextLevelBtn'),
+      taskCount: document.getElementById('taskCount'),
+      totalTasks: document.getElementById('totalTasks'),
+      wheelContainer: document.getElementById('wheelContainer'),
+      wheel: document.getElementById('wheel'),
+      genderIcon: document.getElementById('genderIcon'),
+      gifWrapper: document.getElementById('gifWrapper')
+    };
+
+    async function loadCurrentLevel() {
+      elements.gifWrapper.innerHTML = '<div class="message loading">Загрузка уровня...</div>';
+      
+      try {
+        if (currentLevel.type === 'mutual') {
+          const response = await fetch(currentLevel.file);
+          if (!response.ok) throw new Error(`${currentLevel.file} не найден`);
+          tasksData = await response.json();
+          usedTasks = [];
+          totalTasks = tasksData.length;
+          elements.genderIcon.textContent = '🙎‍♂️\n🙎‍♀️';
+          elements.genderIcon.className = 'gender-icon mutual';
+          elements.wheel.className = 'wheel mutual';
+        } else {
+          const [manData, womanData] = await Promise.all([
+            fetch(currentLevel.files[0]).then(r => {
+              if (!r.ok) throw new Error(`${currentLevel.files[0]} не найден`);
+              return r.json();
+            }),
+            fetch(currentLevel.files[1]).then(r => {
+              if (!r.ok) throw new Error(`${currentLevel.files[1]} не найден`);
+              return r.json();
+            })
+          ]);
+          tasksData = { man: manData, woman: womanData };
+          usedTasks = [];
+          totalTasks = manData.length + womanData.length;
+          
+          // Сброс: первый ход всегда мужской
+          currentGenderIndex = 0;
+          elements.genderIcon.textContent = '🙎‍♂️';
+          elements.genderIcon.className = 'gender-icon';
+          elements.wheel.className = 'wheel man';
+        }
+        
+        updateCounter();
+        checkGameStatus();
+        console.log(`✅ Уровень "${currentLevel.name}" загружен`);
+        return true;
+      } catch (error) {
+        elements.gifWrapper.innerHTML = `<div class="error message">❌ Ошибка: ${error.message}</div>`;
+        return false;
+      }
+    }
+
+    function nextLevel() {
+      if (currentLevelIndex < LEVELS.length - 1) {
+        currentLevelIndex++;
+        currentLevel = LEVELS[currentLevelIndex];
+        loadCurrentLevel();
+      } else {
+        elements.gifWrapper.innerHTML = `<div class="message">🎉 ИГРА ЗАВЕРШЕНА! 🎉</div>`;
+      }
+    }
+
+    function updateCounter() {
+      elements.taskCount.textContent = usedTasks.length;
+      elements.totalTasks.textContent = totalTasks;
+      elements.levelTitle.textContent = currentLevel.name;
+    }
+
+    function getRandomUnusedTask() {
+      let availableTasks = [];
+      if (currentLevel.type === 'mutual') {
+        availableTasks = tasksData.filter(task => !usedTasks.includes(task));
+      } else {
+        const gender = currentGenderIndex === 0 ? 'man' : 'woman';
+        availableTasks = tasksData[gender].filter(task => !usedTasks.includes(task));
+      }
+      
+      if (availableTasks.length === 0) return null;
+      
+      const randomIndex = Math.floor(Math.random() * availableTasks.length);
+      const selectedTask = availableTasks[randomIndex];
+      usedTasks.push(selectedTask);
+      
+      // Переключаем пол ДЛЯ СЛЕДУЮЩЕГО ХОДА
+      if (currentLevel.type !== 'mutual') {
+        currentGenderIndex = (currentGenderIndex + 1) % 2;
+      }
+      
+      updateCounter();
+      return selectedTask;
+    }
+
+    function checkGameStatus() {
+      if (!hasAvailableTasks()) {
+        elements.wheelContainer.classList.add('disabled');
+        elements.gifWrapper.innerHTML = `
+          <div class="message">
+            ✅ Уровень пройден!<br>
+            <button class="next-level-btn" onclick="nextLevel()" style="margin-top:20px;">
+              Следующий уровень (→)
+            </button>
+          </div>
+        `;
+        return false;
+      }
+      elements.wheelContainer.classList.remove('disabled');
+      return true;
+    }
+
+    function hasAvailableTasks() { return usedTasks.length < totalTasks; }
+
+    function showGif(taskUrl) {
+      elements.gifWrapper.innerHTML = '<div class="message loading">...</div>';
+      const img = new Image();
+      img.onload = () => {
+        elements.gifWrapper.innerHTML = '';
+        elements.gifWrapper.appendChild(img);
+        checkGameStatus();
+      };
+      img.onerror = () => {
+        elements.gifWrapper.innerHTML = '<div class="error message">Ошибка картинки</div>';
+      };
+      img.src = taskUrl;
+    }
+
+    function spinWheel() {
+      if (isSpinning || elements.wheelContainer.classList.contains('disabled') || !isDataLoaded) return;
+      
+      isSpinning = true;
+      
+      // Крутим
+      const spinAmount = 1800 + Math.random() * 720;
+      rotationAngle += spinAmount;
+      elements.wheel.style.transform = `rotate(${rotationAngle}deg)`;
+
+      setTimeout(() => {
+        isSpinning = false;
+        
+        // 1. Получаем задание
+        const taskUrl = getRandomUnusedTask();
+        
+        // 2. Обновляем цвет колеса для следующего игрока
+        if (currentLevel.type !== 'mutual') {
+          const isNextMan = currentGenderIndex === 0;
+          elements.genderIcon.textContent = isNextMan ? '🙎‍♂️' : '🙎‍♀️';
+          elements.wheel.className = isNextMan ? 'wheel man' : 'wheel woman';
+        }
+        
+        // 3. Показываем
+        if (taskUrl) showGif(taskUrl);
+        else checkGameStatus();
+        
+      }, 2000);
+    }
+
+    async function initGame() {
+      isDataLoaded = await loadCurrentLevel();
+    }
+
+    // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
+
+    // 1. Клик мышкой по колесу
+    elements.wheelContainer.onclick = spinWheel;
+
+    // 2. Тач по колесу (для iPhone)
+    elements.wheelContainer.ontouchstart = (e) => { 
+        e.preventDefault(); 
+        spinWheel(); 
+    };
+
+    // 3. Клик по кнопке "Следующий уровень"
+    elements.nextLevelBtn.onclick = nextLevel;
+
+    // 4. КЛАВИАТУРА (для ПК)
+    document.addEventListener('keydown', (event) => {
+        // Пробел (Space) -> Крутить
+        if (event.code === 'Space') {
+            event.preventDefault(); // Чтобы страница не скроллилась вниз
+            spinWheel();
+        }
+        // Стрелка вправо (ArrowRight) -> Следующий уровень
+        if (event.code === 'ArrowRight') {
+            nextLevel();
+        }
+    });
+
+    initGame();
+  </script>
+</body>
+</html>
