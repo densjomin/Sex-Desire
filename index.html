@@ -18,7 +18,7 @@
       --warning: #ff4444;
       --success: #4ade80;
       --accent: #a855f7;
-      --skip: #4b5563; /* Серый для кнопки пропуска */
+      --skip: #4b5563;
     }
 
     * {
@@ -61,7 +61,7 @@
       overflow: hidden;
       position: relative;
       transition: all 0.3s ease;
-      margin-bottom: 20px; /* Отступ снизу для мобилок */
+      margin-bottom: 20px;
     }
 
     .gif-wrapper {
@@ -131,7 +131,7 @@
     /* Секция колеса и управления */
     .wheel-section {
       display: flex;
-      align-items: flex-end; /* Выравнивание по низу */
+      align-items: flex-end;
       justify-content: space-between;
       gap: 16px;
       width: 100%;
@@ -276,7 +276,7 @@
         background: #000; 
         border: 1px solid #333;
         box-shadow: 0 0 50px rgba(0,0,0,0.5);
-        margin-bottom: 60px; /* Отступ на ПК */
+        margin-bottom: 60px;
       }
 
       .controls-wrapper {
@@ -303,7 +303,7 @@
       }
 
       .left-controls {
-          align-items: flex-end; /* На ПК прижмем таймер к колесу */
+          align-items: flex-end;
           flex: none;
       }
 
@@ -382,7 +382,7 @@
     let timerInterval = null;
     let isTimerRunning = false;
 
-    // Звуковой контекст для бипа
+    // Звуковой контекст
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     const elements = {
@@ -398,23 +398,38 @@
       timerDisplay: document.getElementById('timerDisplay')
     };
 
+    // --- ФУНКЦИЯ ДЛЯ ВКЛЮЧЕНИЯ АУДИО (ВАЖНО) ---
+    function unlockAudio() {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
     // --- ФУНКЦИИ ЗВУКА ---
     function playBeep() {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (!audioCtx) return;
+
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
+        
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // 440Hz
-        oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.5);
+        // Используем 'triangle' - он более резкий и слышный на телефоне
+        oscillator.type = 'triangle'; 
         
-        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        // Настройка частоты (звук как у будильника)
+        oscillator.frequency.setValueAtTime(500, audioCtx.currentTime); 
+        oscillator.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+        oscillator.frequency.linearRampToValueAtTime(500, audioCtx.currentTime + 0.3);
+        
+        // Настройка громкости
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.8, audioCtx.currentTime + 0.05); // Громче
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
 
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.5);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.8);
     }
 
     // --- ФУНКЦИИ ТАЙМЕРА ---
@@ -434,7 +449,6 @@
 
         stopTimer();
         
-        // СРАЗУ ЗАПУСКАЕМ
         // Рандом от 60 до 180 секунд (1 - 3 минут)
         let duration = Math.floor(Math.random() * (180 - 60 + 1)) + 60;
         
@@ -448,7 +462,10 @@
                 clearInterval(timerInterval);
                 elements.timerDisplay.textContent = 'ВРЕМЯ!';
                 elements.timerDisplay.classList.add('alert');
+                
+                // Проигрываем звук дважды для надежности
                 playBeep();
+                setTimeout(playBeep, 800);
             }
         }, 1000);
     }
@@ -504,6 +521,7 @@
         currentLevelIndex++;
         currentLevel = LEVELS[currentLevelIndex];
         loadCurrentLevel();
+        unlockAudio(); // Также пытаемся разблокировать звук при смене уровня
       } else {
         stopTimer();
         elements.gifWrapper.innerHTML = `<div class="message">🎉 ИГРА ЗАВЕРШЕНА! 🎉</div>`;
@@ -534,7 +552,7 @@
       usedTasks.push(selectedTask);
       currentTask = selectedTask;
       
-      // Переключаем пол ДЛЯ СЛЕДУЮЩЕГО ХОДА (но это можно откатить кнопкой пропуск)
+      // Переключаем пол ДЛЯ СЛЕДУЮЩЕГО ХОДА
       if (currentLevel.type !== 'mutual') {
         currentGenderIndex = (currentGenderIndex + 1) % 2;
       }
@@ -549,18 +567,12 @@
 
         stopTimer(); // Сброс таймера
 
-        // 1. Убираем задание из "выполненных", чтобы счетчик не считал его
-        // (Мы удаляем последнее добавленное задание)
         usedTasks.pop();
         currentTask = null;
 
-        // 2. Откатываем очередь хода обратно
-        // Если это не взаимный уровень, возвращаем ход тому, кто только что крутил
         if (currentLevel.type !== 'mutual') {
-            // Разворачиваем индекс обратно
             currentGenderIndex = (currentGenderIndex + 1) % 2; 
             
-            // Визуально возвращаем иконку и цвет
             const isMan = currentGenderIndex === 0;
             elements.genderIcon.textContent = isMan ? '🙎‍♂️' : '🙎‍♀️';
             elements.wheel.className = isMan ? 'wheel man' : 'wheel woman';
@@ -568,7 +580,6 @@
 
         updateCounter();
 
-        // 3. Блокируем кнопку пропуска и говорим крутить снова
         elements.skipBtn.disabled = true;
         elements.gifWrapper.innerHTML = `
             <div class="message">
@@ -605,7 +616,6 @@
         elements.gifWrapper.appendChild(img);
         checkGameStatus();
         
-        // Разблокируем кнопку пропуска и запускаем таймер СРАЗУ
         elements.skipBtn.disabled = false;
         startTimer();
       };
@@ -619,8 +629,11 @@
     function spinWheel() {
       if (isSpinning || elements.wheelContainer.classList.contains('disabled') || !isDataLoaded) return;
       
-      stopTimer(); // Сброс таймера при новом вращении
-      elements.skipBtn.disabled = true; // Блокируем пропуск во время вращения
+      // >>> КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Разблокируем звук в момент клика <<<
+      unlockAudio();
+      
+      stopTimer(); 
+      elements.skipBtn.disabled = true; 
       isSpinning = true;
       
       const spinAmount = 1800 + Math.random() * 720;
@@ -632,7 +645,6 @@
         
         const taskUrl = getRandomUnusedTask();
         
-        // Обновляем визуально пол для СЛЕДУЮЩЕГО, кто будет крутить ПОСЛЕ выполнения этого задания
         if (currentLevel.type !== 'mutual') {
           const isNextMan = currentGenderIndex === 0;
           elements.genderIcon.textContent = isNextMan ? '🙎‍♂️' : '🙎‍♀️';
