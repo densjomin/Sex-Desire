@@ -166,7 +166,6 @@
         text-shadow: 0 0 10px rgba(255,255,255,0.3);
         min-height: 29px;
     }
-    .timer-display.prep { color: #fbbf24; font-size: 14px; line-height: 29px;} /* Цвет подготовки */
     .timer-display.alert { color: var(--warning); animation: pulse 1s infinite; }
 
     @keyframes pulse {
@@ -381,7 +380,6 @@
 
     // Переменные таймера
     let timerInterval = null;
-    let prepTimeout = null;
     let isTimerRunning = false;
 
     // Звуковой контекст для бипа
@@ -421,7 +419,6 @@
 
     // --- ФУНКЦИИ ТАЙМЕРА ---
     function stopTimer() {
-        clearTimeout(prepTimeout);
         clearInterval(timerInterval);
         elements.timerDisplay.textContent = '--:--';
         elements.timerDisplay.className = 'timer-display';
@@ -437,31 +434,23 @@
 
         stopTimer();
         
-        // Этап 1: Подготовка 10 секунд
-        elements.timerDisplay.textContent = 'Подготовка...';
-        elements.timerDisplay.classList.add('prep');
+        // СРАЗУ ЗАПУСКАЕМ
+        // Рандом от 60 до 300 секунд (1 - 5 минут)
+        let duration = Math.floor(Math.random() * (300 - 60 + 1)) + 60;
         
-        prepTimeout = setTimeout(() => {
-            // Этап 2: Запуск основного таймера
-            // Рандом от 60 до 300 секунд (1 - 5 минут)
-            let duration = Math.floor(Math.random() * (300 - 60 + 1)) + 60;
-            
-            elements.timerDisplay.classList.remove('prep');
+        updateTimerVisual(duration);
+
+        timerInterval = setInterval(() => {
+            duration--;
             updateTimerVisual(duration);
-
-            timerInterval = setInterval(() => {
-                duration--;
-                updateTimerVisual(duration);
-                
-                if (duration <= 0) {
-                    clearInterval(timerInterval);
-                    elements.timerDisplay.textContent = 'ВРЕМЯ!';
-                    elements.timerDisplay.classList.add('alert');
-                    playBeep();
-                }
-            }, 1000);
-
-        }, 10000); // 10 секунд задержка
+            
+            if (duration <= 0) {
+                clearInterval(timerInterval);
+                elements.timerDisplay.textContent = 'ВРЕМЯ!';
+                elements.timerDisplay.classList.add('alert');
+                playBeep();
+            }
+        }, 1000);
     }
 
     function updateTimerVisual(seconds) {
@@ -616,7 +605,7 @@
         elements.gifWrapper.appendChild(img);
         checkGameStatus();
         
-        // Разблокируем кнопку пропуска и запускаем таймер
+        // Разблокируем кнопку пропуска и запускаем таймер СРАЗУ
         elements.skipBtn.disabled = false;
         startTimer();
       };
