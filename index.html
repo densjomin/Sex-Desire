@@ -566,4 +566,125 @@
         currentTask = null;
 
         // 2. Откатываем очередь хода обратно
-        // Если это не взаимный уровень, возвращаем ход тому,
+        // Если это не взаимный уровень, возвращаем ход тому, кто только что крутил
+        if (currentLevel.type !== 'mutual') {
+            // Разворачиваем индекс обратно
+            currentGenderIndex = (currentGenderIndex + 1) % 2; 
+            
+            // Визуально возвращаем иконку и цвет
+            const isMan = currentGenderIndex === 0;
+            elements.genderIcon.textContent = isMan ? '🙎‍♂️' : '🙎‍♀️';
+            elements.wheel.className = isMan ? 'wheel man' : 'wheel woman';
+        }
+
+        updateCounter();
+
+        // 3. Блокируем кнопку пропуска и говорим крутить снова
+        elements.skipBtn.disabled = true;
+        elements.gifWrapper.innerHTML = `
+            <div class="message">
+                🚫 Задание пропущено.<br>
+                Крути снова!
+            </div>
+        `;
+    }
+
+    function checkGameStatus() {
+      if (!hasAvailableTasks()) {
+        elements.wheelContainer.classList.add('disabled');
+        elements.gifWrapper.innerHTML = `
+          <div class="message">
+            ✅ Уровень пройден!<br>
+            <button class="next-level-btn" onclick="nextLevel()" style="margin-top:20px;">
+              Следующий уровень (→)
+            </button>
+          </div>
+        `;
+        return false;
+      }
+      elements.wheelContainer.classList.remove('disabled');
+      return true;
+    }
+
+    function hasAvailableTasks() { return usedTasks.length < totalTasks; }
+
+    function showGif(taskUrl) {
+      elements.gifWrapper.innerHTML = '<div class="message loading">...</div>';
+      const img = new Image();
+      img.onload = () => {
+        elements.gifWrapper.innerHTML = '';
+        elements.gifWrapper.appendChild(img);
+        checkGameStatus();
+        
+        // Разблокируем кнопку пропуска и запускаем таймер
+        elements.skipBtn.disabled = false;
+        startTimer();
+      };
+      img.onerror = () => {
+        elements.gifWrapper.innerHTML = '<div class="error message">Ошибка картинки</div>';
+        elements.skipBtn.disabled = true;
+      };
+      img.src = taskUrl;
+    }
+
+    function spinWheel() {
+      if (isSpinning || elements.wheelContainer.classList.contains('disabled') || !isDataLoaded) return;
+      
+      stopTimer(); // Сброс таймера при новом вращении
+      elements.skipBtn.disabled = true; // Блокируем пропуск во время вращения
+      isSpinning = true;
+      
+      const spinAmount = 1800 + Math.random() * 720;
+      rotationAngle += spinAmount;
+      elements.wheel.style.transform = `rotate(${rotationAngle}deg)`;
+
+      setTimeout(() => {
+        isSpinning = false;
+        
+        const taskUrl = getRandomUnusedTask();
+        
+        // Обновляем визуально пол для СЛЕДУЮЩЕГО, кто будет крутить ПОСЛЕ выполнения этого задания
+        if (currentLevel.type !== 'mutual') {
+          const isNextMan = currentGenderIndex === 0;
+          elements.genderIcon.textContent = isNextMan ? '🙎‍♂️' : '🙎‍♀️';
+          elements.wheel.className = isNextMan ? 'wheel man' : 'wheel woman';
+        }
+        
+        if (taskUrl) showGif(taskUrl);
+        else checkGameStatus();
+        
+      }, 2000);
+    }
+
+    async function initGame() {
+      isDataLoaded = await loadCurrentLevel();
+    }
+
+    // --- EVENT LISTENERS ---
+
+    elements.wheelContainer.onclick = spinWheel;
+    elements.wheelContainer.ontouchstart = (e) => { e.preventDefault(); spinWheel(); };
+    elements.nextLevelBtn.onclick = nextLevel;
+    
+    // Клик по кнопке Пропустить
+    elements.skipBtn.onclick = skipTask;
+
+    document.addEventListener('keydown', (event) => {
+        if (event.code === 'Space') {
+            event.preventDefault(); 
+            spinWheel();
+        }
+        if (event.code === 'ArrowRight') {
+            nextLevel();
+        }
+        // Enter для пропуска
+        if (event.code === 'Enter') {
+            event.preventDefault();
+            skipTask();
+        }
+    });
+
+    initGame();
+  </script>
+</body>
+</html>
